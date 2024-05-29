@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">chat_application</string>
+    <string name="name_hint">Введите имя</string>
+    <string name="email_hint">Введите email</string>
+    <string name="password_hint">Введите пароль</string>
+    <string name="message_hint">Введите сообщение</string>
+</resources>

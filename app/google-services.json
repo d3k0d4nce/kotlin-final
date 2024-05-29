@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "777555406045",
+    "firebase_url": "https://chatapplication-8e267-default-rtdb.firebaseio.com",
+    "project_id": "chatapplication-8e267",
+    "storage_bucket": "chatapplication-8e267.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:777555406045:android:1875a4e9969c24ffbf7f34",
+        "android_client_info": {
+          "package_name": "ru.kishko.chat_application"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAGYxDZEl9oMRDrCiBtWl_lX_X_Ok-hdbA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
