@@ -39,44 +39,61 @@ class MainActivity : AppCompatActivity() {
         chatListRecyclerView.adapter = chatListAdapter
         chatList = mutableListOf()
         addChatButton = findViewById(R.id.addChatButton)
+
+        // Загрузка списка чатов при создании активности
+        loadChatList()
+
         addChatButton.setOnClickListener {
             val intent = Intent(this, AddChatActivity::class.java)
             startActivityForResult(intent, 1)
         }
-
-        loadChatList()
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
         if (requestCode == 1 && resultCode == RESULT_OK) {
-            loadChatList()
+            loadChatList() // Обновляем список чатов после добавления нового
         }
     }
 
     private fun loadChatList() {
         val currentUserUid = auth.currentUser!!.uid
-        firebaseRef.addListenerForSingleValueEvent(object : ValueEventListener {
+        val chatsRef = firebaseRef.parent!!.child("chats")
+        chatList.clear() // Очищаем текущий список чатов
+
+        chatsRef.addListenerForSingleValueEvent(object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
-                chatList.clear()
-                val chatItemsMap = mutableMapOf<String, ChatItem>()
                 for (child in snapshot.children) {
-                    val message = child.getValue(Message::class.java)!!
-                    val otherUserId = if (message.senderUid == currentUserUid) message.receiverUid else message.senderUid
+                    val chatId = child.key!!
+                    val usersRef = child.child("users")
+                    val usersInChat = usersRef.children.mapNotNull { it.key }.toMutableList()
 
-                    if (otherUserId != null) {
-                        val chatItem = chatItemsMap[otherUserId] ?: ChatItem(otherUserId, "")
-                        chatItem.lastMessage = message.text
-                        chatItem.unreadCount = if (message.senderUid != currentUserUid) chatItem.unreadCount + 1 else chatItem.unreadCount
-
-                        chatItemsMap[otherUserId] = chatItem
+                    if (usersInChat.contains(currentUserUid)) {
+                        val lastMessageRef = firebaseRef.orderByChild("chatId").equalTo(chatId)
+                        lastMessageRef.addListenerForSingleValueEvent(object : ValueEventListener {
+                            override fun onDataChange(lastMessageSnapshot: DataSnapshot) {
+                                if (lastMessageSnapshot.exists()) {
+                                    val lastMessage = lastMessageSnapshot.children.last().getValue(Message::class.java)
+                                    if (lastMessage != null) {
+                                        val chatItem = ChatItem(
+                                            usersInChat.firstOrNull { it != currentUserUid } ?: "",
+                                            lastMessage.text ?: "",
+                                            0,
+                                            chatId,
+                                            usersInChat
+                                        )
+                                        chatList.add(chatItem) // Добавляем чат в список
+                                    }
+                                }
+                                chatListAdapter.updateChatList(chatList) // Обновляем адаптер
+                            }
+                            override fun onCancelled(error: DatabaseError) {
+                                Log.w("MainActivity", "onCancelled")
+                            }
+                        })
                     }
                 }
-                chatList.addAll(chatItemsMap.values)
-                chatListAdapter.chatList = chatList
-                chatListAdapter.notifyDataSetChanged()
             }
-
             override fun onCancelled(error: DatabaseError) {
                 Log.w("MainActivity", "loadChatList:onCancelled")
             }

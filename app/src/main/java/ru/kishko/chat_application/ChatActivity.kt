@@ -1,6 +1,7 @@
 package ru.kishko.chat_application
 
 import android.annotation.SuppressLint
+import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import android.widget.Button
@@ -27,6 +28,9 @@ class ChatActivity : AppCompatActivity() {
     private lateinit var user: User
     private lateinit var userId: String // Добавьте это
     private lateinit var currentUserName: String // Добавьте это
+    private lateinit var chatId: String
+    private lateinit var usersInChat: MutableList<String>
+    private lateinit var addParticipantButton: Button
 
     @SuppressLint("MissingInflatedId")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -41,7 +45,17 @@ class ChatActivity : AppCompatActivity() {
         messagesRecyclerView.adapter = messagesAdapter
         messageEditText = findViewById(R.id.messageEditText)
         sendMessageButton = findViewById(R.id.sendMessageButton)
-        userId = intent.getStringExtra("userId")!! // Получите ID пользователя из Intent
+        userId = intent.getStringExtra("userId") ?: ""
+        chatId = intent.getStringExtra("chatId") ?: ""
+        usersInChat = intent.getStringArrayListExtra("usersInChat") ?: mutableListOf() // Обработка null для usersInChat
+
+        addParticipantButton = findViewById(R.id.addParticipantButton)
+        addParticipantButton.setOnClickListener {
+            val intent = Intent(this, AddParticipantActivity::class.java)
+            intent.putExtra("chatId", chatId) // Передаем chatId
+            intent.putStringArrayListExtra("usersInChat", ArrayList(usersInChat)) // Передаем список пользователей
+            startActivityForResult(intent, 2) // Запускаем AddParticipantActivity
+        }
 
         // Получение имени текущего пользователя
         val currentUser = auth.currentUser
@@ -78,7 +92,7 @@ class ChatActivity : AppCompatActivity() {
                 val messages = mutableListOf<Message>()
                 for (child in snapshot.children) {
                     val message = child.getValue(Message::class.java)!!
-                    if ((message.senderUid == userId && message.receiverUid == currentUserUid) || (message.senderUid == currentUserUid && message.receiverUid == userId)) {
+                    if (message.chatId == chatId) { // Фильтруем сообщения по chatId
                         messages.add(message)
                     }
                 }
@@ -97,8 +111,18 @@ class ChatActivity : AppCompatActivity() {
         val messageText = messageEditText.text.toString()
         if (messageText.isEmpty()) return
 
-        val message = Message(auth.currentUser!!.uid, messageText, Date().time, userId)
+        val message = Message(auth.currentUser!!.uid, messageText, Date().time, chatId)
         firebaseRef.push().setValue(message)
         messageEditText.setText("")
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode == 2 && resultCode == RESULT_OK) {
+            // Обновляем список пользователей в чате
+            usersInChat = data?.getStringArrayListExtra("usersInChat") ?: mutableListOf()
+            // Обновляем список сообщений, чтобы отразить изменения
+            loadMessages() // Или используйте другой метод для обновления списка сообщений
+        }
     }
 }

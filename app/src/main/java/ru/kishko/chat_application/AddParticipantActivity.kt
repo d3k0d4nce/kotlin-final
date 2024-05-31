@@ -15,10 +15,9 @@ import com.google.firebase.database.DatabaseReference
 import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.ValueEventListener
 
-class AddChatActivity : AppCompatActivity() {
-
+class AddParticipantActivity : AppCompatActivity() {
     private lateinit var emailEditText: EditText
-    private lateinit var addChatButton: Button
+    private lateinit var addParticipantButton: Button
     private lateinit var auth: FirebaseAuth
     private lateinit var database: FirebaseDatabase
     private lateinit var firebaseRef: DatabaseReference
@@ -29,18 +28,19 @@ class AddChatActivity : AppCompatActivity() {
     @SuppressLint("MissingInflatedId")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_add_chat)
+        setContentView(R.layout.activity_add_participant)
 
         auth = FirebaseAuth.getInstance()
         database = FirebaseDatabase.getInstance()
         firebaseRef = database.getReference("messages")
         usersRef = database.getReference("users")
-        usersInChat = mutableListOf()
+        chatId = intent.getStringExtra("chatId") ?: ""
+        usersInChat = intent.getStringArrayListExtra("usersInChat") ?: mutableListOf()
 
         emailEditText = findViewById(R.id.emailEditText)
-        addChatButton = findViewById(R.id.addChatButton)
+        addParticipantButton = findViewById(R.id.addParticipantButton)
 
-        addChatButton.setOnClickListener {
+        addParticipantButton.setOnClickListener {
             val email = emailEditText.text.toString().trim()
             if (email.isEmpty()) {
                 Toast.makeText(this, "Введите Email", Toast.LENGTH_SHORT).show()
@@ -54,33 +54,27 @@ class AddChatActivity : AppCompatActivity() {
                         val iterator = snapshot.children.iterator()
                         if (iterator.hasNext()) {
                             val userId = iterator.next().key
-                            val currentUserUid = auth.currentUser!!.uid
-                            chatId = "${currentUserUid}-${userId}" // Сгенерируйте ID чата
-                            // Добавьте пользователей в чат
+                            // Добавьте нового пользователя в чат
                             val chatRef = firebaseRef.parent!!.child("chats").child(chatId)
-                            usersInChat.add(currentUserUid) // Добавьте текущего пользователя
                             usersInChat.add(userId!!) // Добавьте нового пользователя
                             usersInChat.forEach {
                                 chatRef.child("users").child(it).setValue(true)
                             }
 
-                            // Запускаем ChatActivity с данными
-                            val intent = Intent(this@AddChatActivity, ChatActivity::class.java)
-                            intent.putExtra("chatId", chatId) // Передаем chatId
-                            intent.putExtra("userId", userId) // Передаем chatId
-                            intent.putStringArrayListExtra("usersInChat", ArrayList(usersInChat)) // Передаем список пользователей
-                            startActivity(intent)
-                            setResult(RESULT_OK)
-                            finish()
+                            // Передаем обновленный список пользователей обратно в ChatActivity
+                            val intent = Intent()
+                            intent.putStringArrayListExtra("usersInChat", ArrayList(usersInChat))
+                            setResult(RESULT_OK, intent) // Устанавливаем результат
+                            finish() // Закрываем AddParticipantActivity
                         } else {
-                            Toast.makeText(this@AddChatActivity, "Пользователь с таким Email не найден", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(this@AddParticipantActivity, "Пользователь с таким Email не найден", Toast.LENGTH_SHORT).show()
                         }
                     } else {
-                        Toast.makeText(this@AddChatActivity, "Пользователь с таким Email не найден", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(this@AddParticipantActivity, "Пользователь с таким Email не найден", Toast.LENGTH_SHORT).show()
                     }
                 }
                 override fun onCancelled(error: DatabaseError) {
-                    Log.w("AddChatActivity", "loadUser:onCancelled")
+                    Log.w("AddParticipantActivity", "loadUser:onCancelled")
                 }
             })
         }

@@ -33,7 +33,9 @@ class ChatListAdapter(var chatList: MutableList<ChatItem>, val context: Context)
         holder.chatItemTextView.text = chatItem.lastMessage
         holder.itemView.setOnClickListener {
             val intent = Intent(context, ChatActivity::class.java)
-            intent.putExtra("userId", chatItem.userId)
+            intent.putExtra("chatId", chatItem.chatId)
+            // Передаем список пользователей в Intent
+            intent.putStringArrayListExtra("usersInChat", ArrayList(chatItem.usersInChat)) // Преобразование в ArrayList
             context.startActivity(intent)
         }
 
@@ -64,4 +66,10 @@ class ChatListAdapter(var chatList: MutableList<ChatItem>, val context: Context)
     }
 
     override fun getItemCount(): Int = chatList.size
+
+    // Метод обновления списка чатов
+    fun updateChatList(newChatList: MutableList<ChatItem>) {
+        chatList = newChatList // Обновляем список чатов
+        notifyDataSetChanged() // Оповещаем адаптер о изменениях
+    }
 }
